@@ -98,17 +98,26 @@ export const ExpenseProvider = ({ children }) => {
 
   // ── Exchange rate ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchRate = async () => {
+    const fetchRates = async () => {
       setExchangeRateLoading(true);
       try {
-        const res = await fetch('https://dolarapi.com/v1/dolares/blue');
-        const data = await res.json();
-        setExchangeRate({ buy: data.compra, sell: data.venta, updated: data.fechaActualizacion });
+        const [blueRes, oficialRes] = await Promise.all([
+          fetch('https://dolarapi.com/v1/dolares/blue'),
+          fetch('https://dolarapi.com/v1/dolares/oficial')
+        ]);
+        const blueData = await blueRes.json();
+        const oficialData = await oficialRes.json();
+        
+        setExchangeRate({
+          blue: { buy: blueData.compra, sell: blueData.venta },
+          oficial: { buy: oficialData.compra, sell: oficialData.venta },
+          updated: oficialData.fechaActualizacion
+        });
       } catch { /* silently fail */ } finally {
         setExchangeRateLoading(false);
       }
     };
-    fetchRate();
+    fetchRates();
   }, []);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────

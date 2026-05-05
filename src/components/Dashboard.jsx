@@ -125,16 +125,28 @@ export const Dashboard = () => {
 
       {/* Exchange Rate Widget */}
       {exchangeRate && (
-        <div className="glass-panel exchange-card">
-          <div className="exchange-flag">💵</div>
-          <div className="exchange-info">
-            <span className="exchange-label">Dólar Blue</span>
-            <div className="exchange-rates">
-              <span>Compra: <strong>${exchangeRate.buy}</strong></span>
-              <span>Venta: <strong>${exchangeRate.sell}</strong></span>
+        <div className="glass-panel exchange-card" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.8rem', padding: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%' }}>
+            <div className="exchange-flag">🏛️</div>
+            <div className="exchange-info" style={{ flex: 1 }}>
+              <span className="exchange-label">Dólar Banco Nación (Oficial)</span>
+              <div className="exchange-rates">
+                <span>Compra: <strong>${exchangeRate.oficial.buy}</strong></span>
+                <span>Venta: <strong>${exchangeRate.oficial.sell}</strong></span>
+              </div>
+            </div>
+            <FiRefreshCw className="exchange-icon" title="Actualizado" />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', opacity: 0.8, paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="exchange-flag">💵</div>
+            <div className="exchange-info">
+              <span className="exchange-label">Dólar Blue</span>
+              <div className="exchange-rates">
+                <span>Compra: <strong>${exchangeRate.blue.buy}</strong></span>
+                <span>Venta: <strong>${exchangeRate.blue.sell}</strong></span>
+              </div>
             </div>
           </div>
-          <FiRefreshCw className="exchange-icon" title="Actualizado" />
         </div>
       )}
 
