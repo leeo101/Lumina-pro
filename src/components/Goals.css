@@ -1,0 +1,132 @@
+.goals-container {
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.goals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.add-goal-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.add-goal-btn:hover {
+  transform: scale(1.05);
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.goal-card {
+  padding: 1.5rem;
+}
+
+.goal-info {
+  margin-bottom: 1rem;
+}
+
+.goal-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.goal-title-row h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.delete-goal {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.delete-goal:hover {
+  opacity: 1;
+}
+
+.goal-amounts {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.goal-saved {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.goal-target {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.goal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goal-percentage {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.contribute-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.contribute-btn:hover {
+  background: var(--accent-primary);
+  color: white;
+}

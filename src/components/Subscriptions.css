@@ -1,0 +1,119 @@
+.subscriptions-container {
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.subs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.add-sub-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent-secondary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.add-sub-btn:hover {
+  transform: scale(1.05);
+}
+
+.subs-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.subs-summary p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.subs-summary h3 {
+  font-size: 2rem;
+  color: var(--accent-secondary);
+}
+
+.subs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.sub-card {
+  display: flex;
+  align-items: center;
+  padding: 1.25rem;
+  gap: 1rem;
+}
+
+.sub-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--accent-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.sub-info {
+  flex: 1;
+}
+
+.sub-info h4 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.sub-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sub-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.sub-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.delete-sub {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.delete-sub:hover {
+  opacity: 1;
+}
