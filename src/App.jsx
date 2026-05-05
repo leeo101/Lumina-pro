@@ -14,7 +14,7 @@ import './App.css';
 
 function AppContent() {
   const { user, logout } = useAuth();
-  const { accounts, activeAccountId, switchAccount, addAccount } = useExpenses();
+  const { accounts, activeAccountId, switchAccount, addAccount, dataLoading } = useExpenses();
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
@@ -31,7 +31,7 @@ function AppContent() {
     <div className="app-container">
       <header className="header">
         <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <img src="/logo.png" alt="Lumina Pro" style={{ height: '36px', width: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+          <img src="/icon-512.png" alt="Lumina Pro" style={{ height: '36px', width: '36px', borderRadius: '8px', objectFit: 'cover' }} />
           Lumina Pro
         </div>
         
@@ -64,14 +64,23 @@ function AppContent() {
       </header>
 
       <main className="main-content" style={{ paddingBottom: '90px' }}>
-        {currentView === 'dashboard' && (
+        {dataLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '1rem' }}>
+            <div style={{ width: '40px', height: '40px', border: '3px solid rgba(139,92,246,0.2)', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Cargando tus datos...</p>
+          </div>
+        ) : (
           <>
-            <Dashboard />
-            <TransactionList />
+            {currentView === 'dashboard' && (
+              <>
+                <Dashboard />
+                <TransactionList />
+              </>
+            )}
+            {currentView === 'subscriptions' && <Subscriptions />}
+            {currentView === 'goals' && <Goals />}
           </>
         )}
-        {currentView === 'subscriptions' && <Subscriptions />}
-        {currentView === 'goals' && <Goals />}
       </main>
 
       <button className="fab" onClick={() => setShowAddModal(true)}>

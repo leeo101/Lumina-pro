@@ -94,3 +94,8 @@
     right: calc(50% - 300px + 20px);
   }
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

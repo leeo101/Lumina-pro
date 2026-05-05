@@ -1,73 +1,102 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from './AuthContext';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const ExpenseContext = createContext();
-
 export const useExpenses = () => useContext(ExpenseContext);
 
 export const ExpenseProvider = ({ children }) => {
   const { user } = useAuth();
 
-  const LS_KEY_TX = `lumina_txs_${user?.username}`;
-  const LS_KEY_ACCOUNTS = `lumina_accs_${user?.username}`;
-  const LS_KEY_ACTIVE_ACC = `lumina_active_acc_${user?.username}`;
-  const LS_KEY_GOALS = `lumina_goals_${user?.username}`;
-  const LS_KEY_SUBS = `lumina_subs_${user?.username}`;
-  const LS_KEY_BUDGET = `lumina_budget_${user?.username}`;
-  const LS_KEY_CATS = `lumina_cats_${user?.username}`;
-
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [accounts, setAccounts] = useState([{ id: 'default', name: 'Cuenta Personal', currency: 'ARS' }]);
+  const [activeAccountId, setActiveAccountId] = useState('default');
+  const [transactions, setTransactions] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [monthlyBudget, setMonthlyBudgetState] = useState(0);
+  const [customCategories, setCustomCategories] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const [accounts, setAccounts] = useState(() => {
-    if (!user) return [];
-    const saved = localStorage.getItem(LS_KEY_ACCOUNTS);
-    if (saved) return JSON.parse(saved);
-    return [{ id: 'default', name: 'Cuenta Personal', currency: 'ARS' }];
-  });
-
-  const [activeAccountId, setActiveAccountId] = useState(() => {
-    if (!user) return 'default';
-    return localStorage.getItem(LS_KEY_ACTIVE_ACC) || 'default';
-  });
-
-  const [transactions, setTransactions] = useState(() => {
-    if (!user) return [];
-    const saved = localStorage.getItem(LS_KEY_TX);
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [goals, setGoals] = useState(() => {
-    if (!user) return [];
-    const saved = localStorage.getItem(LS_KEY_GOALS);
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [subscriptions, setSubscriptions] = useState(() => {
-    if (!user) return [];
-    const saved = localStorage.getItem(LS_KEY_SUBS);
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  const [monthlyBudget, setMonthlyBudgetState] = useState(() => {
-    if (!user) return 0;
-    const saved = localStorage.getItem(LS_KEY_BUDGET);
-    return saved ? parseFloat(saved) : 0;
-  });
-
-  const [customCategories, setCustomCategories] = useState(() => {
-    if (!user) return [];
-    const saved = localStorage.getItem(LS_KEY_CATS);
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Live exchange rate (ARS blue)
   const [exchangeRate, setExchangeRate] = useState(null);
   const [exchangeRateLoading, setExchangeRateLoading] = useState(false);
 
+  // Ref to guard against saving before data is loaded from Firestore
+  const readyToSave = useRef(false);
+
+  // ── Load data from Firestore when user changes ──────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      readyToSave.current = false;
+      setDataLoading(false);
+      return;
+    }
+
+    readyToSave.current = false;
+    setDataLoading(true);
+
+    const load = async () => {
+      try {
+        const uid = user.uid;
+        const [txSnap, accSnap, goalsSnap, subsSnap, settingsSnap] = await Promise.all([
+          getDoc(doc(db, 'users', uid, 'appdata', 'transactions')),
+          getDoc(doc(db, 'users', uid, 'appdata', 'accounts')),
+          getDoc(doc(db, 'users', uid, 'appdata', 'goals')),
+          getDoc(doc(db, 'users', uid, 'appdata', 'subs')),
+          getDoc(doc(db, 'users', uid, 'appdata', 'settings')),
+        ]);
+
+        if (txSnap.exists())      setTransactions(txSnap.data().items || []);
+        if (accSnap.exists()) {
+          setAccounts(accSnap.data().items || [{ id: 'default', name: 'Cuenta Personal', currency: 'ARS' }]);
+          setActiveAccountId(accSnap.data().activeAccountId || 'default');
+        }
+        if (goalsSnap.exists())   setGoals(goalsSnap.data().items || []);
+        if (subsSnap.exists())    setSubscriptions(subsSnap.data().items || []);
+        if (settingsSnap.exists()) {
+          setMonthlyBudgetState(settingsSnap.data().monthlyBudget || 0);
+          setCustomCategories(settingsSnap.data().customCategories || []);
+        }
+      } catch (e) {
+        console.error('Error cargando datos desde Firestore:', e);
+      } finally {
+        setDataLoading(false);
+        // Allow saving after a tick so the above setters have flushed
+        setTimeout(() => { readyToSave.current = true; }, 200);
+      }
+    };
+
+    load();
+  }, [user?.uid]);
+
+  // ── Save data to Firestore (debounced 1.5 s) ────────────────────────────────
+  const saveTimer = useRef(null);
+
+  useEffect(() => {
+    if (!user || !readyToSave.current) return;
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const uid = user.uid;
+        await Promise.all([
+          setDoc(doc(db, 'users', uid, 'appdata', 'transactions'), { items: transactions }),
+          setDoc(doc(db, 'users', uid, 'appdata', 'accounts'),     { items: accounts, activeAccountId }),
+          setDoc(doc(db, 'users', uid, 'appdata', 'goals'),        { items: goals }),
+          setDoc(doc(db, 'users', uid, 'appdata', 'subs'),         { items: subscriptions }),
+          setDoc(doc(db, 'users', uid, 'appdata', 'settings'),     { monthlyBudget, customCategories }),
+        ]);
+      } catch (e) {
+        console.error('Error guardando en Firestore:', e);
+      }
+    }, 1500);
+
+    return () => clearTimeout(saveTimer.current);
+  }, [transactions, accounts, activeAccountId, goals, subscriptions, monthlyBudget, customCategories, user]);
+
+  // ── Exchange rate ────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchRate = async () => {
       setExchangeRateLoading(true);
@@ -75,232 +104,131 @@ export const ExpenseProvider = ({ children }) => {
         const res = await fetch('https://dolarapi.com/v1/dolares/blue');
         const data = await res.json();
         setExchangeRate({ buy: data.compra, sell: data.venta, updated: data.fechaActualizacion });
-      } catch {
-        // Silently fail - not critical
-      } finally {
+      } catch { /* silently fail */ } finally {
         setExchangeRateLoading(false);
       }
     };
     fetchRate();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(LS_KEY_TX, JSON.stringify(transactions));
-      localStorage.setItem(LS_KEY_ACCOUNTS, JSON.stringify(accounts));
-      localStorage.setItem(LS_KEY_ACTIVE_ACC, activeAccountId);
-      localStorage.setItem(LS_KEY_GOALS, JSON.stringify(goals));
-      localStorage.setItem(LS_KEY_SUBS, JSON.stringify(subscriptions));
-      localStorage.setItem(LS_KEY_CATS, JSON.stringify(customCategories));
-    }
-  }, [transactions, accounts, activeAccountId, goals, subscriptions, customCategories, user]);
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  const setMonthlyBudget = (amount) => setMonthlyBudgetState(parseFloat(amount) || 0);
 
-  const setMonthlyBudget = (amount) => {
-    const val = parseFloat(amount) || 0;
-    setMonthlyBudgetState(val);
-    localStorage.setItem(LS_KEY_BUDGET, val);
-  };
-
-  const addCustomCategory = (name) => {
-    setCustomCategories(prev => prev.includes(name) ? prev : [...prev, name]);
-  };
-
-  const deleteCustomCategory = (name) => {
-    setCustomCategories(prev => prev.filter(c => c !== name));
-  };
+  const addCustomCategory  = (name) => setCustomCategories(prev => prev.includes(name) ? prev : [...prev, name]);
+  const deleteCustomCategory = (name) => setCustomCategories(prev => prev.filter(c => c !== name));
 
   const addTransaction = (transaction) => {
     const installments = parseInt(transaction.installments || 1);
 
-    // Handle account transfer
     if (transaction.type === 'transfer' && transaction.transferToAccountId) {
-      const txOut = {
-        ...transaction,
-        id: uuidv4(),
-        date: transaction.date || new Date().toISOString(),
-        accountId: activeAccountId,
-        type: 'expense',
-        category: 'Transferencia',
-      };
-      const txIn = {
-        ...transaction,
-        id: uuidv4(),
-        date: transaction.date || new Date().toISOString(),
-        accountId: transaction.transferToAccountId,
-        type: 'income',
-        category: 'Transferencia',
-        description: transaction.description,
-      };
-      setTransactions(prev => [txOut, txIn, ...prev]);
+      const base = { ...transaction, date: transaction.date || new Date().toISOString(), accountId: activeAccountId };
+      setTransactions(prev => [
+        { ...base, id: uuidv4(), type: 'expense', category: 'Transferencia' },
+        { ...base, id: uuidv4(), type: 'income',  category: 'Transferencia', accountId: transaction.transferToAccountId },
+        ...prev,
+      ]);
       return;
     }
 
     if (installments > 1 && transaction.type === 'expense') {
-      const installmentAmount = transaction.amount / installments;
-      const baseDate = new Date(transaction.date || new Date().toISOString());
-
-      const newTransactions = [];
-      for (let i = 0; i < installments; i++) {
-        const d = new Date(baseDate);
+      const amt  = transaction.amount / installments;
+      const base = new Date(transaction.date || new Date().toISOString());
+      const newTxs = Array.from({ length: installments }, (_, i) => {
+        const d = new Date(base);
         d.setMonth(d.getMonth() + i);
-        newTransactions.push({
-          ...transaction,
-          id: uuidv4(),
-          amount: installmentAmount,
-          description: `${transaction.description} (Cuota ${i + 1}/${installments})`,
-          date: d.toISOString(),
-          accountId: activeAccountId
-        });
-      }
-      setTransactions(prev => [...newTransactions.reverse(), ...prev]);
+        return { ...transaction, id: uuidv4(), amount: amt, description: `${transaction.description} (Cuota ${i+1}/${installments})`, date: d.toISOString(), accountId: activeAccountId };
+      });
+      setTransactions(prev => [...newTxs.reverse(), ...prev]);
     } else {
-      setTransactions(prev => [{
-        ...transaction,
-        id: uuidv4(),
-        date: transaction.date || new Date().toISOString(),
-        accountId: activeAccountId
-      }, ...prev]);
+      setTransactions(prev => [{ ...transaction, id: uuidv4(), date: transaction.date || new Date().toISOString(), accountId: activeAccountId }, ...prev]);
     }
   };
 
-  const updateTransaction = (id, updates) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
+  const updateTransaction = (id, updates) => setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  const deleteTransaction  = (id) => setTransactions(prev => prev.filter(t => t.id !== id));
 
-  const deleteTransaction = (id) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  };
-
-  const addAccount = (name, currency = 'ARS') => {
-    const newAcc = { id: uuidv4(), name, currency };
-    setAccounts(prev => [...prev, newAcc]);
-    setActiveAccountId(newAcc.id);
-  };
-
+  const addAccount    = (name, currency = 'ARS') => { const a = { id: uuidv4(), name, currency }; setAccounts(prev => [...prev, a]); setActiveAccountId(a.id); };
   const switchAccount = (id) => setActiveAccountId(id);
 
-  const addGoal = (goal) => {
-    setGoals(prev => [...prev, { ...goal, id: uuidv4(), saved: 0, accountId: activeAccountId }]);
-  };
-
-  const contributeToGoal = (goalId, amount) => {
+  const addGoal         = (goal)          => setGoals(prev => [...prev, { ...goal, id: uuidv4(), saved: 0, accountId: activeAccountId }]);
+  const deleteGoal      = (id)            => setGoals(prev => prev.filter(g => g.id !== id));
+  const contributeToGoal = (goalId, amt) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    addTransaction({
-      description: `Aporte a Meta: ${goal.name}`,
-      amount,
-      type: 'expense',
-      category: 'Otros',
-      date: new Date().toISOString()
-    });
-    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, saved: g.saved + amount } : g));
+    addTransaction({ description: `Aporte a Meta: ${goal.name}`, amount: amt, type: 'expense', category: 'Otros', date: new Date().toISOString() });
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, saved: g.saved + amt } : g));
   };
 
-  const deleteGoal = (id) => setGoals(prev => prev.filter(g => g.id !== id));
+  const addSubscription    = (sub) => setSubscriptions(prev => [...prev, { ...sub, id: uuidv4(), accountId: activeAccountId }]);
+  const deleteSubscription = (id)  => setSubscriptions(prev => prev.filter(s => s.id !== id));
 
-  const addSubscription = (sub) => {
-    setSubscriptions(prev => [...prev, { ...sub, id: uuidv4(), accountId: activeAccountId }]);
-  };
+  const changeMonth = (offset) => setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
 
-  const deleteSubscription = (id) => setSubscriptions(prev => prev.filter(s => s.id !== id));
-
-  const isSameMonth = (date1, date2) =>
-    date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth();
+  // ── Derived values ───────────────────────────────────────────────────────────
+  const isSameMonth = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
 
   const accountTransactions = transactions.filter(t => (t.accountId || 'default') === activeAccountId);
   const currentMonthTransactions = accountTransactions.filter(t => isSameMonth(new Date(t.date), currentMonthDate));
-
   const prevMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - 1, 1);
   const prevMonthTransactions = accountTransactions.filter(t => isSameMonth(new Date(t.date), prevMonthDate));
 
-  const balance = currentMonthTransactions.reduce((acc, curr) =>
-    curr.type === 'income' ? acc + curr.amount : acc - curr.amount, 0);
+  const balance    = currentMonthTransactions.reduce((acc, t) => t.type === 'income' ? acc + t.amount : acc - t.amount, 0);
+  const income     = currentMonthTransactions.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const expense    = currentMonthTransactions.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const prevIncome = prevMonthTransactions.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const prevExpense= prevMonthTransactions.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
 
-  const income = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const expense = currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-
-  const prevIncome = prevMonthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const prevExpense = prevMonthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-
-  // 6-month trend data
   const sixMonthTrend = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() - (5 - i), 1);
-    const monthTxs = accountTransactions.filter(t => isSameMonth(new Date(t.date), d));
-    const inc = monthTxs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-    const exp = monthTxs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+    const mTxs = accountTransactions.filter(t => isSameMonth(new Date(t.date), d));
     return {
       name: new Intl.DateTimeFormat('es-AR', { month: 'short' }).format(d),
-      Ingresos: inc,
-      Gastos: exp,
+      Ingresos: mTxs.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0),
+      Gastos:   mTxs.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0),
     };
   });
 
   const today = new Date();
   const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
-
-  let dailyBudget = 0;
-  let dailyBudgetUsed = 0;
-  let dailyBudgetLimit = 0;
-  let dailyBudgetSource = 'none'; // 'manual' | 'income' | 'none'
+  let dailyBudget = 0, dailyBudgetUsed = 0, dailyBudgetLimit = 0, dailyBudgetSource = 'none';
 
   const todayExpenses = currentMonthTransactions
     .filter(t => t.type === 'expense' && isSameMonth(new Date(t.date), today) && new Date(t.date).getDate() === today.getDate())
-    .reduce((acc, t) => acc + t.amount, 0);
+    .reduce((a, t) => a + t.amount, 0);
 
   if (monthlyBudget > 0) {
     dailyBudgetSource = 'manual';
-    dailyBudgetLimit = monthlyBudget / daysInMonth;
-    dailyBudgetUsed = todayExpenses;
-    dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
+    dailyBudgetLimit  = monthlyBudget / daysInMonth;
+    dailyBudgetUsed   = todayExpenses;
+    dailyBudget       = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
   } else if (income > 0 && isSameMonth(currentMonthDate, today)) {
     dailyBudgetSource = 'income';
-    dailyBudgetLimit = income / daysInMonth;
-    dailyBudgetUsed = todayExpenses;
-    dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
+    dailyBudgetLimit  = income / daysInMonth;
+    dailyBudgetUsed   = todayExpenses;
+    dailyBudget       = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
   }
-
-  const changeMonth = (offset) => {
-    setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
-  };
 
   return (
     <ExpenseContext.Provider value={{
       transactions: currentMonthTransactions,
+      allTransactions: accountTransactions,
       accounts,
       activeAccountId,
       activeAccount: accounts.find(a => a.id === activeAccountId),
-      addAccount,
-      switchAccount,
-      addTransaction,
-      updateTransaction,
-      deleteTransaction,
-      balance,
-      income,
-      expense,
-      prevIncome,
-      prevExpense,
-      dailyBudget,
-      dailyBudgetLimit,
-      dailyBudgetUsed,
-      dailyBudgetSource,
-      monthlyBudget,
-      setMonthlyBudget,
-      currentMonthDate,
-      changeMonth,
+      addAccount, switchAccount,
+      addTransaction, updateTransaction, deleteTransaction,
+      balance, income, expense, prevIncome, prevExpense,
+      dailyBudget, dailyBudgetLimit, dailyBudgetUsed, dailyBudgetSource,
+      monthlyBudget, setMonthlyBudget,
+      currentMonthDate, changeMonth,
       sixMonthTrend,
-      exchangeRate,
-      exchangeRateLoading,
+      exchangeRate, exchangeRateLoading,
       goals: goals.filter(g => (g.accountId || 'default') === activeAccountId),
-      addGoal,
-      contributeToGoal,
-      deleteGoal,
+      addGoal, contributeToGoal, deleteGoal,
       subscriptions: subscriptions.filter(s => (s.accountId || 'default') === activeAccountId),
-      addSubscription,
-      deleteSubscription,
-      customCategories,
-      addCustomCategory,
-      deleteCustomCategory,
-      allTransactions: accountTransactions
+      addSubscription, deleteSubscription,
+      customCategories, addCustomCategory, deleteCustomCategory,
+      dataLoading,
     }}>
       {children}
     </ExpenseContext.Provider>
