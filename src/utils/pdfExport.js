@@ -1,54 +1,117 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+const categoryMap = {
+  Food: 'Comida', Shopping: 'Compras', Housing: 'Vivienda',
+  Transport: 'Transporte', Salary: 'Sueldo', Other: 'Otros', Transferencia: 'Transferencia',
+};
 
 export const exportToPdf = (transactions, activeAccount, currentMonthDate, balance, income, expense) => {
   const doc = new jsPDF();
   const currency = activeAccount?.currency || 'ARS';
   const monthStr = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(currentMonthDate);
+  const monthLabel = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
 
-  // Colors
-  const primaryColor = [139, 92, 246]; // Violeta
-  const textColor = [50, 50, 50];
+  const violet = [139, 92, 246];
+  const cyan   = [6, 182, 212];
+  const dark   = [15, 23, 42];
+  const gray   = [100, 116, 139];
+  const white  = [255, 255, 255];
 
-  // Header
+  // ── Background header ──────────────────────────────────────────────────────
+  doc.setFillColor(...dark);
+  doc.rect(0, 0, 210, 40, 'F');
+
+  doc.setFillColor(...violet);
+  doc.rect(0, 40, 210, 2, 'F');
+
+  // ── Title ──────────────────────────────────────────────────────────────────
   doc.setFontSize(22);
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text('Lumina Expenses', 14, 20);
+  doc.setTextColor(...white);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Lumina Pro', 14, 18);
 
-  doc.setFontSize(14);
-  doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-  doc.text(`Resumen Mensual - ${monthStr.charAt(0).toUpperCase() + monthStr.slice(1)}`, 14, 30);
-  doc.text(`Cuenta: ${activeAccount?.name || 'Personal'} (${currency})`, 14, 38);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...cyan);
+  doc.text(`Resumen Mensual — ${monthLabel}`, 14, 27);
+  doc.text(`Cuenta: ${activeAccount?.name || 'Personal'} (${currency})`, 14, 35);
 
-  // Summary Cards
-  doc.setFontSize(12);
-  doc.text(`Ingresos: ${income.toFixed(2)}`, 14, 50);
-  doc.text(`Gastos: ${expense.toFixed(2)}`, 80, 50);
-  doc.text(`Balance Total: ${balance.toFixed(2)}`, 150, 50);
+  // ── Summary cards ─────────────────────────────────────────────────────────
+  const fmt = (n) => `$ ${n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const cardY = 50;
+  const cardH = 22;
+  const cardW = 58;
+  const gap   = 8;
 
-  // Table
-  const tableColumn = ["Fecha", "Descripción", "Categoría", "Tipo", "Monto"];
-  const tableRows = [];
+  const cards = [
+    { label: 'Ingresos',  value: fmt(income),  color: [16, 185, 129] },
+    { label: 'Gastos',    value: fmt(expense),  color: [239, 68, 68] },
+    { label: 'Balance',   value: fmt(balance),  color: [...violet] },
+  ];
 
-  transactions.forEach(t => {
-    const txData = [
+  cards.forEach(({ label, value, color }, i) => {
+    const x = 14 + i * (cardW + gap);
+    doc.setFillColor(245, 245, 255);
+    doc.roundedRect(x, cardY, cardW, cardH, 3, 3, 'F');
+    doc.setFillColor(...color);
+    doc.roundedRect(x, cardY, 4, cardH, 2, 0, 'F');
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...gray);
+    doc.text(label.toUpperCase(), x + 8, cardY + 8);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...color);
+    doc.text(value, x + 8, cardY + 17);
+  });
+
+  // ── Table ─────────────────────────────────────────────────────────────────
+  const rows = transactions
+    .filter(t => t.type !== 'transfer')
+    .map(t => [
       new Date(t.date).toLocaleDateString('es-AR'),
-      t.description,
-      t.category,
+      t.description || '—',
+      categoryMap[t.category] || t.category || '—',
       t.type === 'income' ? 'Ingreso' : 'Gasto',
-      `${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}`
-    ];
-    tableRows.push(txData);
-  });
+      (t.type === 'income' ? '+' : '-') + fmt(t.amount),
+    ]);
 
-  doc.autoTable({
-    head: [tableColumn],
-    body: tableRows,
-    startY: 60,
+  autoTable(doc, {
+    head: [['Fecha', 'Descripción', 'Categoría', 'Tipo', 'Monto']],
+    body: rows,
+    startY: cardY + cardH + 10,
     theme: 'grid',
-    styles: { fontSize: 10 },
-    headStyles: { fillColor: primaryColor }
+    styles: { fontSize: 9, cellPadding: 4, textColor: [50, 50, 50] },
+    headStyles: {
+      fillColor: violet,
+      textColor: white,
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    alternateRowStyles: { fillColor: [248, 247, 255] },
+    columnStyles: {
+      0: { cellWidth: 24 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 34, halign: 'right' },
+    },
   });
 
-  doc.save(`lumina-reporte-${monthStr.replace(' ', '-')}.pdf`);
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setFontSize(8);
+    doc.setTextColor(...gray);
+    doc.text(
+      `Generado por Lumina Pro · ${new Date().toLocaleDateString('es-AR')}`,
+      14, doc.internal.pageSize.height - 8
+    );
+    doc.text(`${p} / ${pageCount}`, 196, doc.internal.pageSize.height - 8, { align: 'right' });
+  }
+
+  doc.save(`lumina-${monthLabel.replace(' ', '-').toLowerCase()}.pdf`);
 };
