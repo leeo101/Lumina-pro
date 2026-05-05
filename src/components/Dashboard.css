@@ -4,38 +4,65 @@
   gap: 1.5rem;
 }
 
-.month-selector {
+.month-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0.5rem;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .month-btn {
   background: var(--surface-color);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.month-btn:hover {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+.month-display {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  justify-content: center;
+  flex: 1;
 }
 
 .month-title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
+
+.month-export-btn {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--accent-secondary);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.month-export-btn:hover {
+  background: rgba(6, 182, 212, 0.2);
+  transform: scale(1.1);
+}
+
 
 .balance-card {
   display: flex;

@@ -96,33 +96,29 @@ export const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-        <div className="month-selector" style={{ flex: 1, margin: 0 }}>
-          <button className="month-btn" onClick={() => changeMonth(-1)}><FiChevronLeft /></button>
+      <div className="month-header">
+        <button className="month-btn" onClick={() => changeMonth(-1)} title="Mes anterior">
+          <FiChevronLeft />
+        </button>
+        
+        <div className="month-display">
           <h2 className="month-title">{formatMonth(currentMonthDate)}</h2>
-          <button className="month-btn" onClick={() => changeMonth(1)}><FiChevronRight /></button>
+          <button
+            className="month-export-btn"
+            onClick={() => exportToPdf(transactions, activeAccount, currentMonthDate, balance, income, expense)}
+            title="Exportar PDF"
+          >
+            <FiDownload />
+          </button>
         </div>
-        <button
-          onClick={() => exportToPdf(transactions, activeAccount, currentMonthDate, balance, income, expense)}
-          title="Exportar PDF del mes"
-          style={{
-            flexShrink: 0,
-            width: '38px', height: '38px',
-            borderRadius: '50%',
-            background: 'rgba(6,182,212,0.1)',
-            border: '1px solid rgba(6,182,212,0.3)',
-            color: 'var(--accent-secondary)',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <FiDownload />
+
+        <button className="month-btn" onClick={() => changeMonth(1)} title="Mes siguiente">
+          <FiChevronRight />
         </button>
       </div>
 
       <div className="glass-panel balance-card">
+
         <h3 className="balance-title">Balance Total</h3>
         <h1 className="balance-amount">{formatCurrency(balance, currency)}</h1>
       </div>

@@ -32,15 +32,14 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="header">
-        <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <img src="/icon-512.png" alt="Lumina Pro" style={{ height: '36px', width: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+        <div className="logo">
+          <img src="/icon-512.png" alt="Lumina Pro" className="logo-img" />
           Lumina Pro
         </div>
         
-        <div className="account-controls" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="account-controls">
           <select 
-            className="form-input" 
-            style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+            className="account-select" 
             value={activeAccountId}
             onChange={(e) => {
               if (e.target.value === 'new') {
