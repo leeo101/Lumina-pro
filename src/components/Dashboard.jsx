@@ -17,11 +17,12 @@ const formatMonth = (date) => {
 };
 
 const calculateChange = (current, previous) => {
-  if (previous === 0) return current > 0 ? '+100%' : '0%';
+  if (previous === 0 && current === 0) return { text: 'Sin movimientos', positive: null };
+  if (previous === 0) return { text: 'Primer registro', positive: true };
   const diff = current - previous;
   const percentage = (diff / previous) * 100;
   const sign = percentage > 0 ? '+' : '';
-  return `${sign}${percentage.toFixed(1)}%`;
+  return { text: `${sign}${percentage.toFixed(1)}% vs mes ant.`, positive: percentage >= 0 };
 };
 
 const categoryMap = {
@@ -123,9 +124,9 @@ export const Dashboard = () => {
           <div className="summary-info">
             <h4>Ingresos</h4>
             <p>{formatCurrency(income, currency)}</p>
-            <span className={`comparison ${income >= prevIncome ? 'positive' : 'negative'}`}>
-              {calculateChange(income, prevIncome)} vs mes ant.
-            </span>
+            {(() => { const c = calculateChange(income, prevIncome); return c.positive === null
+              ? <span className="comparison neutral">{c.text}</span>
+              : <span className={`comparison ${c.positive ? 'positive' : 'negative'}`}>{c.text}</span>; })()}
           </div>
         </div>
         <div className="glass-panel summary-card">
@@ -135,9 +136,9 @@ export const Dashboard = () => {
           <div className="summary-info">
             <h4>Gastos</h4>
             <p>{formatCurrency(expense, currency)}</p>
-            <span className={`comparison ${expense >= prevExpense ? 'negative' : 'positive'}`}>
-              {calculateChange(expense, prevExpense)} vs mes ant.
-            </span>
+            {(() => { const c = calculateChange(expense, prevExpense); return c.positive === null
+              ? <span className="comparison neutral">{c.text}</span>
+              : <span className={`comparison ${!c.positive ? 'positive' : 'negative'}`}>{c.text}</span>; })()}
           </div>
         </div>
       </div>

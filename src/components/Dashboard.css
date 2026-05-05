@@ -138,6 +138,11 @@
   color: var(--danger);
 }
 
+.comparison.neutral {
+  background-color: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+}
+
 .summary-info p span.comparison {
   font-size: 0.75rem;
 }
