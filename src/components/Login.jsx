@@ -34,7 +34,7 @@ export const Login = () => {
 
   return (
     <div className="login-container">
-      <div className="glass-panel login-box">
+      <div className="glass-panel login-card">
         <div className="login-header">
           <img src="/logo.png" alt="Lumina Pro" style={{ width: '80px', height: '80px', borderRadius: '20px', marginBottom: '1rem', objectFit: 'cover', boxShadow: '0 8px 32px rgba(6, 182, 212, 0.4)' }} />
           <h2>Lumina Pro</h2>
