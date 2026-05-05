@@ -7,20 +7,62 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo.png'],
+      devOptions: {
+        enabled: true  // Habilita la PWA también en desarrollo
+      },
+      includeAssets: ['logo.png', 'favicon.svg'],
       manifest: {
-        name: 'Lumina Expenses',
-        short_name: 'Lumina',
-        description: 'Gestor de gastos e ingresos',
+        name: 'Lumina Pro — Gestor de Gastos',
+        short_name: 'Lumina Pro',
+        description: 'Tu gestor de finanzas personales inteligente. Multi-cuenta, metas, suscripciones y más.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
+        lang: 'es',
+        categories: ['finance', 'productivity'],
         icons: [
           {
             src: 'logo.png',
-            sizes: '192x192 512x512',
+            sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: 'logo.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        shortcuts: [
+          {
+            name: 'Agregar Gasto',
+            short_name: 'Gasto',
+            description: 'Registrar un nuevo gasto rápido',
+            url: '/?action=add',
+            icons: [{ src: 'logo.png', sizes: '192x192' }]
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/dolarapi\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'dolar-api-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 3600 }
+            }
           }
         ]
       }
