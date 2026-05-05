@@ -14,6 +14,7 @@ export const ExpenseProvider = ({ children }) => {
   const LS_KEY_ACTIVE_ACC = `lumina_active_acc_${user?.username}`;
   const LS_KEY_GOALS = `lumina_goals_${user?.username}`;
   const LS_KEY_SUBS = `lumina_subs_${user?.username}`;
+  const LS_KEY_BUDGET = `lumina_budget_${user?.username}`;
 
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
 
@@ -49,6 +50,18 @@ export const ExpenseProvider = ({ children }) => {
     if (saved) return JSON.parse(saved);
     return [];
   });
+
+  const [monthlyBudget, setMonthlyBudgetState] = useState(() => {
+    if (!user) return 0;
+    const saved = localStorage.getItem(LS_KEY_BUDGET);
+    return saved ? parseFloat(saved) : 0;
+  });
+
+  const setMonthlyBudget = (amount) => {
+    const val = parseFloat(amount) || 0;
+    setMonthlyBudgetState(val);
+    localStorage.setItem(LS_KEY_BUDGET, val);
+  };
 
   useEffect(() => {
     if (user) {
@@ -161,16 +174,29 @@ export const ExpenseProvider = ({ children }) => {
   const prevExpense = prevMonthTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
 
   const today = new Date();
-  let dailyBudget = 0;
+  const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
   
-  if (isSameMonth(currentMonthDate, today)) {
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  // Daily budget: based on user-set monthly budget or fallback to remaining balance
+  let dailyBudget = 0;
+  let dailyBudgetUsed = 0;  // how much was spent today
+  let dailyBudgetLimit = 0; // the per-day limit
+
+  if (monthlyBudget > 0) {
+    dailyBudgetLimit = monthlyBudget / daysInMonth;
+    // today's spending
+    dailyBudgetUsed = currentMonthTransactions
+      .filter(t => t.type === 'expense' && isSameMonth(new Date(t.date), today) && new Date(t.date).getDate() === today.getDate())
+      .reduce((acc, t) => acc + t.amount, 0);
+    dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
+  } else if (isSameMonth(currentMonthDate, today)) {
     const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
-    dailyBudget = balance > 0 ? balance / daysRemaining : 0;
-  } else if (currentMonthDate > today) {
-    const daysInMonth = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate();
-    dailyBudget = balance > 0 ? balance / daysInMonth : 0;
+    dailyBudgetLimit = balance > 0 ? balance / daysRemaining : 0;
+    dailyBudgetUsed = currentMonthTransactions
+      .filter(t => t.type === 'expense' && new Date(t.date).getDate() === today.getDate())
+      .reduce((acc, t) => acc + t.amount, 0);
+    dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
   } else {
+    dailyBudgetLimit = 0;
     dailyBudget = 0;
   }
 
@@ -194,6 +220,10 @@ export const ExpenseProvider = ({ children }) => {
       prevIncome,
       prevExpense,
       dailyBudget,
+      dailyBudgetLimit,
+      dailyBudgetUsed,
+      monthlyBudget,
+      setMonthlyBudget,
       currentMonthDate,
       changeMonth,
       goals: goals.filter(g => (g.accountId || 'default') === activeAccountId),
