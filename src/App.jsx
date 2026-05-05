@@ -9,13 +9,15 @@ import { Subscriptions } from './components/Subscriptions';
 import { Goals } from './components/Goals';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Settings } from './components/Settings';
-import { FiPlus, FiLogOut, FiHome, FiRepeat, FiTarget, FiSettings } from 'react-icons/fi';
+import { FiPlus, FiLogOut, FiHome, FiRepeat, FiTarget, FiSettings, FiUpload } from 'react-icons/fi';
+import { ImportCSV } from './components/ImportCSV';
 import './App.css';
 
 function AppContent() {
   const { user, logout } = useAuth();
   const { accounts, activeAccountId, switchAccount, addAccount, dataLoading } = useExpenses();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -54,6 +56,9 @@ function AppContent() {
             <option value="new">+ Nueva Cuenta</option>
           </select>
           
+          <button className="user-profile" onClick={() => setShowImport(true)} title="Importar CSV bancario" style={{ color: 'var(--accent-secondary)' }}>
+            <FiUpload />
+          </button>
           <button className="user-profile" onClick={() => setShowSettings(true)} title="Configuración">
             <FiSettings />
           </button>
@@ -90,6 +95,8 @@ function AppContent() {
       {showAddModal && (
         <AddTransaction onClose={() => setShowAddModal(false)} />
       )}
+
+      {showImport && <ImportCSV onClose={() => setShowImport(false)} />}
 
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
