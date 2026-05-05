@@ -241,19 +241,21 @@ export const ExpenseProvider = ({ children }) => {
   let dailyBudget = 0;
   let dailyBudgetUsed = 0;
   let dailyBudgetLimit = 0;
+  let dailyBudgetSource = 'none'; // 'manual' | 'income' | 'none'
+
+  const todayExpenses = currentMonthTransactions
+    .filter(t => t.type === 'expense' && isSameMonth(new Date(t.date), today) && new Date(t.date).getDate() === today.getDate())
+    .reduce((acc, t) => acc + t.amount, 0);
 
   if (monthlyBudget > 0) {
+    dailyBudgetSource = 'manual';
     dailyBudgetLimit = monthlyBudget / daysInMonth;
-    dailyBudgetUsed = currentMonthTransactions
-      .filter(t => t.type === 'expense' && isSameMonth(new Date(t.date), today) && new Date(t.date).getDate() === today.getDate())
-      .reduce((acc, t) => acc + t.amount, 0);
+    dailyBudgetUsed = todayExpenses;
     dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
-  } else if (isSameMonth(currentMonthDate, today)) {
-    const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
-    dailyBudgetLimit = balance > 0 ? balance / daysRemaining : 0;
-    dailyBudgetUsed = currentMonthTransactions
-      .filter(t => t.type === 'expense' && new Date(t.date).getDate() === today.getDate())
-      .reduce((acc, t) => acc + t.amount, 0);
+  } else if (income > 0 && isSameMonth(currentMonthDate, today)) {
+    dailyBudgetSource = 'income';
+    dailyBudgetLimit = income / daysInMonth;
+    dailyBudgetUsed = todayExpenses;
     dailyBudget = Math.max(0, dailyBudgetLimit - dailyBudgetUsed);
   }
 
@@ -280,6 +282,7 @@ export const ExpenseProvider = ({ children }) => {
       dailyBudget,
       dailyBudgetLimit,
       dailyBudgetUsed,
+      dailyBudgetSource,
       monthlyBudget,
       setMonthlyBudget,
       currentMonthDate,

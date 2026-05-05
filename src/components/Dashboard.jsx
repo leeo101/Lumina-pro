@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
 import { FiArrowUpRight, FiArrowDownRight, FiCalendar, FiChevronLeft, FiChevronRight, FiDownload, FiRefreshCw } from 'react-icons/fi';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, LineChart, Line, YAxis } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, LineChart, Line, YAxis, ReferenceLine } from 'recharts';
 import { exportToPdf } from '../utils/pdfExport';
 import './Dashboard.css';
 
@@ -35,7 +35,7 @@ const categoryMap = {
 };
 
 export const Dashboard = () => {
-  const { balance, income, expense, prevIncome, prevExpense, dailyBudget, dailyBudgetLimit, dailyBudgetUsed, monthlyBudget, setMonthlyBudget, transactions, currentMonthDate, changeMonth, activeAccount, sixMonthTrend, exchangeRate, exchangeRateLoading } = useExpenses();
+  const { balance, income, expense, prevIncome, prevExpense, dailyBudget, dailyBudgetLimit, dailyBudgetUsed, dailyBudgetSource, monthlyBudget, setMonthlyBudget, transactions, currentMonthDate, changeMonth, activeAccount, sixMonthTrend, exchangeRate, exchangeRateLoading } = useExpenses();
   const currency = activeAccount?.currency || 'ARS';
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -196,15 +196,14 @@ export const Dashboard = () => {
             </div>
           ) : (
             <>
-              <p style={{ marginTop: '0.2rem' }}>
-                {monthlyBudget > 0
-                  ? <><strong>{formatCurrency(dailyBudget, currency)}</strong> <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>disponible hoy</span></>
-                  : <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Configurá tu presupuesto mensual</span>
-                }
-              </p>
-              {monthlyBudget > 0 && dailyBudgetLimit > 0 && (
+              {monthlyBudget > 0 ? (
                 <>
-                  <div style={{ marginTop: '0.5rem', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                  <p style={{ marginTop: '0.2rem' }}>
+                    <strong>{formatCurrency(dailyBudgetLimit, currency)}</strong>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginLeft: '0.3rem' }}>por día</span>
+                  </p>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--accent-secondary)', display: 'block', marginBottom: '0.3rem' }}>📋 Presupuesto manual</span>
+                  <div style={{ marginTop: '0.1rem', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%',
                       width: `${Math.min(100, (dailyBudgetUsed / dailyBudgetLimit) * 100)}%`,
@@ -213,10 +212,44 @@ export const Dashboard = () => {
                       transition: 'width 0.4s ease'
                     }} />
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.3rem', display: 'block' }}>
-                    Gastado hoy: {formatCurrency(dailyBudgetUsed, currency)} de {formatCurrency(dailyBudgetLimit, currency)}
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      Gastado hoy: <strong style={{ color: dailyBudgetUsed > dailyBudgetLimit ? '#ef4444' : 'var(--text-primary)' }}>{formatCurrency(dailyBudgetUsed, currency)}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: dailyBudget > 0 ? 'var(--accent-secondary)' : '#ef4444', fontWeight: 600 }}>
+                      {dailyBudget > 0 ? `Disponible: ${formatCurrency(dailyBudget, currency)}` : 'Límite superado'}
+                    </span>
+                  </div>
                 </>
+              ) : dailyBudgetSource === 'income' ? (
+                <>
+                  <p style={{ marginTop: '0.2rem' }}>
+                    <strong>{formatCurrency(dailyBudgetLimit, currency)}</strong>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginLeft: '0.3rem' }}>por día</span>
+                  </p>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginBottom: '0.3rem' }}>💰 Basado en tus ingresos del mes</span>
+                  <div style={{ marginTop: '0.1rem', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(100, (dailyBudgetUsed / dailyBudgetLimit) * 100)}%`,
+                      background: dailyBudgetUsed > dailyBudgetLimit ? '#ef4444' : '#10b981',
+                      borderRadius: '4px',
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.3rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      Gastado hoy: <strong style={{ color: dailyBudgetUsed > dailyBudgetLimit ? '#ef4444' : 'var(--text-primary)' }}>{formatCurrency(dailyBudgetUsed, currency)}</strong>
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: dailyBudget > 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                      {dailyBudget > 0 ? `Disponible: ${formatCurrency(dailyBudget, currency)}` : 'Límite superado'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p style={{ marginTop: '0.2rem' }}>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Registrá un ingreso o configurá tu presupuesto mensual</span>
+                </p>
               )}
             </>
           )}
@@ -249,30 +282,59 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {expensesByDay.some(d => d.amount > 0) && (
-        <div className="glass-panel chart-container">
-          <h3>Gastos por Día (Mes Completo)</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={expensesByDay}>
-              <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={10} />
-              <Tooltip
-                cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                content={({active, payload}) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>
-                        <p style={{ color: '#fff', fontSize: '0.9rem' }}>{`${payload[0].payload.date}: ${formatCurrency(payload[0].value, currency)}`}</p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
+      <div className="glass-panel chart-container">
+        <h3>Gastos por Día (Mes Completo)</h3>
+        {dailyBudgetLimit > 0 && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>
+            — Línea: límite diario {formatCurrency(dailyBudgetLimit, currency)}
+          </p>
+        )}
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={expensesByDay} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={10} />
+            <YAxis
+              stroke="#94a3b8"
+              fontSize={9}
+              tickLine={false}
+              axisLine={false}
+              width={52}
+              tickFormatter={v => v === 0 ? '' : `$${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              cursor={{fill: 'rgba(255,255,255,0.05)'}}
+              content={({active, payload}) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>
+                      <p style={{ color: '#fff', fontSize: '0.9rem' }}>{`${payload[0].payload.date}: ${formatCurrency(payload[0].value, currency)}`}</p>
+                      {dailyBudgetLimit > 0 && (
+                        <p style={{ color: payload[0].value > dailyBudgetLimit ? '#ef4444' : '#10b981', fontSize: '0.78rem' }}>
+                          {payload[0].value > dailyBudgetLimit ? '⚠ Superó el límite' : `✓ Dentro del límite`}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Bar
+              dataKey="amount"
+              radius={[4, 4, 0, 0]}
+              fill="var(--accent-secondary)"
+            />
+            {dailyBudgetLimit > 0 && (
+              <ReferenceLine
+                y={dailyBudgetLimit}
+                stroke="#10b981"
+                strokeDasharray="5 3"
+                strokeWidth={1.5}
+                label={false}
               />
-              <Bar dataKey="amount" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+            )}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* 6-Month Trend Chart */}
       {sixMonthTrend && sixMonthTrend.some(m => m.Ingresos > 0 || m.Gastos > 0) && (
