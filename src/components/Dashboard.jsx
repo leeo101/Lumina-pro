@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useExpenses } from '../context/ExpenseContext';
-import { FiArrowUpRight, FiArrowDownRight, FiCalendar, FiChevronLeft, FiChevronRight, FiDownload } from 'react-icons/fi';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis } from 'recharts';
+import { FiArrowUpRight, FiArrowDownRight, FiCalendar, FiChevronLeft, FiChevronRight, FiDownload, FiRefreshCw } from 'react-icons/fi';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, LineChart, Line, YAxis } from 'recharts';
 import { exportToPdf } from '../utils/pdfExport';
 import './Dashboard.css';
 
@@ -35,7 +35,7 @@ const categoryMap = {
 };
 
 export const Dashboard = () => {
-  const { balance, income, expense, prevIncome, prevExpense, dailyBudget, dailyBudgetLimit, dailyBudgetUsed, monthlyBudget, setMonthlyBudget, transactions, currentMonthDate, changeMonth, activeAccount } = useExpenses();
+  const { balance, income, expense, prevIncome, prevExpense, dailyBudget, dailyBudgetLimit, dailyBudgetUsed, monthlyBudget, setMonthlyBudget, transactions, currentMonthDate, changeMonth, activeAccount, sixMonthTrend, exchangeRate, exchangeRateLoading } = useExpenses();
   const currency = activeAccount?.currency || 'ARS';
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
@@ -115,6 +115,21 @@ export const Dashboard = () => {
         <h3 className="balance-title">Balance Total</h3>
         <h1 className="balance-amount">{formatCurrency(balance, currency)}</h1>
       </div>
+
+      {/* Exchange Rate Widget */}
+      {exchangeRate && (
+        <div className="glass-panel exchange-card">
+          <div className="exchange-flag">💵</div>
+          <div className="exchange-info">
+            <span className="exchange-label">Dólar Blue</span>
+            <div className="exchange-rates">
+              <span>Compra: <strong>${exchangeRate.buy}</strong></span>
+              <span>Venta: <strong>${exchangeRate.sell}</strong></span>
+            </div>
+          </div>
+          <FiRefreshCw className="exchange-icon" title="Actualizado" />
+        </div>
+      )}
 
       <div className="summary-cards">
         <div className="glass-panel summary-card">
@@ -240,8 +255,8 @@ export const Dashboard = () => {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={expensesByDay}>
               <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={10} />
-              <Tooltip 
-                cursor={{fill: 'rgba(255,255,255,0.05)'}} 
+              <Tooltip
+                cursor={{fill: 'rgba(255,255,255,0.05)'}}
                 content={({active, payload}) => {
                   if (active && payload && payload.length) {
                     return (
@@ -251,10 +266,41 @@ export const Dashboard = () => {
                     );
                   }
                   return null;
-                }} 
+                }}
               />
               <Bar dataKey="amount" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} />
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* 6-Month Trend Chart */}
+      {sixMonthTrend && sixMonthTrend.some(m => m.Ingresos > 0 || m.Gastos > 0) && (
+        <div className="glass-panel chart-container">
+          <h3>Tendencia 6 Meses</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={sixMonthTrend}>
+              <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis hide />
+              <Tooltip
+                content={({active, payload, label}) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="glass-panel" style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>
+                        <p style={{ color: '#fff', fontSize: '0.85rem', marginBottom: '0.3rem' }}>{label}</p>
+                        {payload.map((p, i) => (
+                          <p key={i} style={{ color: p.color, fontSize: '0.82rem' }}>{p.name}: {formatCurrency(p.value, currency)}</p>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend verticalAlign="bottom" height={28} iconType="circle" />
+              <Line type="monotone" dataKey="Ingresos" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Gastos" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       )}

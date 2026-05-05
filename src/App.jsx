@@ -8,7 +8,8 @@ import { Login } from './components/Login';
 import { Subscriptions } from './components/Subscriptions';
 import { Goals } from './components/Goals';
 import { InstallPrompt } from './components/InstallPrompt';
-import { FiUser, FiPlus, FiLogOut, FiHome, FiRepeat, FiTarget } from 'react-icons/fi';
+import { Settings } from './components/Settings';
+import { FiPlus, FiLogOut, FiHome, FiRepeat, FiTarget, FiSettings } from 'react-icons/fi';
 import './App.css';
 
 function AppContent() {
@@ -16,6 +17,7 @@ function AppContent() {
   const { accounts, activeAccountId, switchAccount, addAccount } = useExpenses();
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleAddAccount = () => {
     const name = prompt("Nombre de la nueva cuenta (ej. Negocio):");
@@ -52,6 +54,9 @@ function AppContent() {
             <option value="new">+ Nueva Cuenta</option>
           </select>
           
+          <button className="user-profile" onClick={() => setShowSettings(true)} title="Configuración">
+            <FiSettings />
+          </button>
           <button className="user-profile" onClick={logout} title="Cerrar sesión">
             <FiLogOut />
           </button>
@@ -76,6 +81,8 @@ function AppContent() {
       {showAddModal && (
         <AddTransaction onClose={() => setShowAddModal(false)} />
       )}
+
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
 
       <InstallPrompt />
 
