@@ -107,10 +107,10 @@ export const Login = () => {
 
               {activeTab === 'login' && (
                 <>
-                  <button type="button" className="login-btn" style={{ background: 'transparent', border: '1px solid var(--border-color)', marginTop: '-0.5rem' }} onClick={() => loginWithBiometrics(email)}>
-                    <FiUnlock style={{ marginRight: '0.4rem' }} /> Ingresar con Huella
+                  <button type="button" className="login-btn secondary" onClick={() => loginWithBiometrics(email)}>
+                    <FiUnlock /> Ingresar con Huella
                   </button>
-                  <button type="button" onClick={() => { setShowReset(true); clearError(); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.82rem', cursor: 'pointer', textAlign: 'center', marginTop: '0.2rem' }}>
+                  <button type="button" onClick={() => { setShowReset(true); clearError(); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.82rem', cursor: 'pointer', textAlign: 'center' }}>
                     ¿Olvidaste tu contraseña?
                   </button>
                 </>
